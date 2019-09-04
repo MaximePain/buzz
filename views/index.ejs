@@ -33,6 +33,10 @@
 			</div>
 		</form>
 	</div>
+	<form id="formPost" method="POST" action="">
+		<input type="hidden" name="idRoom" id="formIdRoom">
+		<input type="hidden" name="playerId" id="formPlayerId">
+	</form>
 </body>
 
 <script>
@@ -93,7 +97,7 @@
 		let idRoom = data.id;
 		//TODO menu de conf qui s'affiche
 
-		run(idRoom);
+		run(idRoom, data.playerId);
 	}
 
 	function join(data){
@@ -101,12 +105,19 @@
 		sessionStorage.setItem('idRoom', idRoom);
 		sessionStorage.setItem('playerId', data.playerId);
 
-		run(idRoom);
+		run(idRoom, data.playerId);
 	}
 
-	function run(idRoom)
+	function run(idRoom, playerId)
 	{
-		window.location.href = '/' + idRoom;
+		let formPost = document.getElementById("formPost");
+		formPost.action = '/app';
+		let formIdRoom = document.getElementById('formIdRoom');
+		formIdRoom.value = idRoom;
+		let formPlayerId = document.getElementById('formPlayerId');
+		formPlayerId.value = playerId;
+
+		formPost.submit();
 	}
 </script>
 

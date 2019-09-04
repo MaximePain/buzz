@@ -13,6 +13,9 @@ const wss = new WebSocket.Server({ server });
 
 app.use(express.static(__dirname + '/public'));
 
+app.use(express.json());
+app.use(express.urlencoded());
+
 app.get('/', (req, res) => {
 	res.render("index.ejs");
 });
@@ -21,9 +24,18 @@ app.get('/:idRoom', (req, res) => {
 	res.render("buzz.ejs");
 });
 
+app.post('/app', (req,res)=>{
+	//console.log(req.body);
+	let admin = isAdmin(req.body.idRoom, req.body.playerId);
+	res.render('buzz.ejs', {admin: admin});
+});
+
 var salle = {};
 
 var wsL = [];
+
+var servId = "28720a12s5c1gfar1fg0g0jira2fp";
+var wsSelf = new WebSocket("ws://127.0.0.1:" + PORT);
 
 wss.on("connection", function conncetion(ws) {
 	ws.on('message', function message(raw) {
@@ -90,7 +102,6 @@ wss.on("connection", function conncetion(ws) {
 					}
 				}
 				break;
-
 			case 'start':
 				{
 					let idRoom = data.idRoom;
@@ -109,6 +120,7 @@ wss.on("connection", function conncetion(ws) {
 									clearInterval(param.interval);
 								}
 							}, 1000, salle[idRoom]);
+						resetPlayersScore(idRoom);
 						msg = {
 							type: 'start',
 							temps: salle[idRoom].temps
@@ -140,7 +152,47 @@ wss.on("connection", function conncetion(ws) {
 					}
 				}
 				break;
-			case 'restart':
+			case 'reset':
+					{
+						let idRoom = data.idRoom;
+						let playerId = data.playerId;
+						if (isAdmin(idRoom, playerId)) {
+							salle[idRoom].temps = data.temps;
+							salle[idRoom].etat = 'stop';
+							clearInterval(salle[idRoom].interval);
+
+							msg = {
+								type: 'stop',
+								temps: salle[idRoom].temps
+							}
+							wss.clients.forEach(function each(client) {
+								if (client.readyState === WebSocket.OPEN && client.idRoom == ws.idRoom) {
+									client.send(JSON.stringify(msg));
+								}
+							});
+						}
+					}
+				break;
+			case 'buzz':
+				{
+					let idRoom = data.idRoom;
+					let playerId = data.playerId;
+
+					
+					let score = Date.now() - salle[idRoom].players[playerId].time;
+					score /= 1000;
+					
+					salle[idRoom].players[playerId].score = score;
+					console.log("buzz");
+					msg = {
+						type: 'buzz'
+					}
+					wss.clients.forEach(function each(client) {
+						if (client.readyState === WebSocket.OPEN && client.idRoom == ws.idRoom) {
+							client.send(JSON.stringify(msg));
+						}
+					});
+				}
 				break;
 		}
 	});
@@ -172,9 +224,21 @@ function createPlayer(idRoom, pseudo, role) {
 	let id = generateId();
 	salle[idRoom].players[id] = {
 		pseudo: pseudo,
-		role: role
+		role: role,
+		score: -1
 	}
 	return id;
+}
+
+function resetPlayersScore(idRoom)
+{
+	let players = salle[idRoom].players;
+	for(let id in players)
+	{
+		let player = players[id];
+		player.score = -1;
+		player.time = Date.now(); 
+	}
 }
 
 function getListSalleId() {
@@ -185,7 +249,7 @@ function getListSalleId() {
 }
 
 function isAdmin(idRoom, playerId) {
-	return salle[idRoom].players[playerId].role == 'admin';
+	return ( playerId == servId ||  salle[idRoom].players[playerId].role == 'admin');
 }
 
 function broadcastRoom(idRoom, msg) {

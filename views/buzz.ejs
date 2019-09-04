@@ -23,10 +23,9 @@
 <body>
 	<div style="margin-left: 20px">
 		<div id="controlPanelAdmin" style="display: none">
-
 			<button id="buttonStart">Start</button>
 			<button id="buttonReset">Reset</button>
-			<label>Temps: </label><input type="text">
+			<label>Temps: </label><input id="tempsReset" type="text" value="10">
 			<br>
 			<label>Temps restant: </label><input id="tempsInput" value="10">
 			<br><br>
@@ -36,106 +35,159 @@
 				</tbody>
 			</table>
 		</div>
+
+		<div id="containerPasAdmin" style="display: none">
+			<button class="btn btn-secondary" type="button" style="width: 300px; height:300px" id="buttonBuzz"
+				disabled>BUZZ</button>
+			<label>Temps restant: </label><input id="tempsInputC" value="" readonly>
+		</div>
 	</div>
+	<input type="hidden" id="inputAdmin" value="<%- admin %>">
 </body>
 
 <script>
-	var ws = new WebSocket("ws://127.0.0.1:5000");
+	var admin;
 	var idRoom = sessionStorage.getItem('idRoom');
 	var playerId = sessionStorage.getItem('playerId');
+	window.addEventListener('load', () => {
+		var ws = new WebSocket("ws://127.0.0.1:5000");
 
-	var interval = undefined;
+		var interval = undefined;
 
-	var tempsInput = document.getElementById('tempsInput');
+		var buttonBuzz = document.getElementById("buttonBuzz");
+		var tempsInput = document.getElementById('tempsInput');
+		var tempsInputC = document.getElementById('tempsInputC'); //client pas admin
 
-	ws.onmessage = (raw) => {
-		let data = JSON.parse(raw.data);
-		console.log(data.type);
-		switch (data.type) {
-			case 'start':
-				tempsInput.value = data.temps;
-				interval = setInterval(() => {
-					if (tempsInput.value > 0)
-						tempsInput.value--;
-					else
-						clearInterval(interval);
-				}, 1000);
-				break;
-			case 'stop':
-				tempsInput.value = data.temps;
-				clearInterval(interval);
-				break;
-		}
-	}
+		admin = document.getElementById("inputAdmin").value == 'true';
 
-	let admin = true;
-	if (admin) {
-
-		var start = false;
-
-		var controlPanelAdmin = document.getElementById("controlPanelAdmin");
-		controlPanelAdmin.style.display = 'block';
-		var buttonStart = document.getElementById('buttonStart');
-		var buttonReset = document.getElementById('buttonReset');
-
-		buttonStart.onclick = () => {
-			start = !start;
-			if (start)
-				buttonStart.textContent = 'Pause';
-			else
-				buttonStart.textContent = "Start";
-
-			if (start) {
-				let msg = {
-					type: 'start',
-					idRoom: idRoom,
-					playerId: playerId,
-					temps: tempsInput.value
-				}
-				ws.send(JSON.stringify(msg));
-			}
-			else {
-				let msg = {
-					type: 'stop',
-					idRoom: idRoom,
-					playerId: playerId,
-				}
-				ws.send(JSON.stringify(msg));
-			}
-		}
-
-		/*ws.onmessage = (raw) => {
+		ws.onmessage = (raw) => {
 			let data = JSON.parse(raw.data);
-			console.log(data.type);
 			switch (data.type) {
-				case 'getPlayersAll':
-					let players = data.players;
-					updatePlayers(players);
+				case 'start':
+					buttonBuzz.removeAttribute('disabled');
+					tempsInput.value = data.temps;
+					interval = setInterval(() => {
+						if (tempsInput.value > 0)
+							tempsInput.value--;
+						else
+							clearInterval(interval);
+						tempsInputC.value = tempsInput.value;
+					}, 1000);
+					break;
+				case 'stop':
+					tempsInput.value = data.temps;
+					tempsInputC.value = tempsInput.value;
+					clearInterval(interval);
+					buttonBuzz.setAttribute('disabled', '');
 					break;
 			}
-		}*/
-
-		function updatePlayers(players) {
-			let table = document.getElementById("playersTable");
-			table.innerHTML = '';
-			for (let playerId in players) {
-				let player = players[playerId];
-				if (player.role == 'player') {
-					table.innerHTML += '<tr> <td style="border: 1px solid black"> ' + player.pseudo + '</td><td>info</td></tr>';
+			if (admin) {
+				switch (data.type) {
+					case 'getPlayersAll':
+						let players = data.players;
+						updatePlayers(players);
+						break;
+					case 'buzz':
+						let msg = {
+							type: 'getPlayersAll',
+							idRoom: idRoom,
+							playerId: playerId
+						}
+						ws.send(JSON.stringify(msg));
+						break;
 				}
 			}
 		}
 
-		//debug
-		/*setInterval(() => {
-			let msg = {
-				type: 'getPlayersAll',
-				idRoom: idRoom,
-				playerId: playerId
+		if (admin) {
+
+			var start = false;
+
+			var tempsReset = document.getElementById('tempsReset');
+
+			var controlPanelAdmin = document.getElementById("controlPanelAdmin");
+			controlPanelAdmin.style.display = 'block';
+			var buttonStart = document.getElementById('buttonStart');
+			var buttonReset = document.getElementById('buttonReset');
+
+			buttonStart.onclick = () => {
+				start = !start;
+				if (start)
+					buttonStart.textContent = 'Pause';
+				else
+					buttonStart.textContent = "Start";
+
+				if (start) {
+					let msg = {
+						type: 'start',
+						idRoom: idRoom,
+						playerId: playerId,
+						temps: tempsInput.value
+					}
+					ws.send(JSON.stringify(msg));
+				}
+				else {
+					let msg = {
+						type: 'stop',
+						idRoom: idRoom,
+						playerId: playerId
+					}
+					ws.send(JSON.stringify(msg));
+				}
 			}
-			ws.send(JSON.stringify(msg));
-		}, 2000);*/
-	}
+
+			buttonReset.onclick = () => {
+				let table = document.getElementById("playersTable");
+				table.innerHTML = '';
+				start = false;
+				buttonStart.textContent = "Start";
+				let msg = {
+					type: 'reset',
+					idRoom: idRoom,
+					playerId: playerId,
+					temps: tempsReset.value
+				}
+				ws.send(JSON.stringify(msg));
+			};
+
+			function updatePlayers(players) {
+				let table = document.getElementById("playersTable");
+				table.innerHTML = '';
+				for (let playerId in players) {
+					let player = players[playerId];
+					if (player.role == 'player') {
+						let score = player.score;
+						if (score != -1)
+							table.innerHTML += '<tr> <td style="border: 1px solid black"> ' + player.pseudo + '</td><td>' + player.score + '</td></tr>';
+					}
+				}
+			}
+
+			//debug
+			/*setInterval(() => {
+				let msg = {
+					type: 'getPlayersAll',
+					idRoom: idRoom,
+					playerId: playerId
+				}
+				ws.send(JSON.stringify(msg));
+			}, 2000);*/
+		}
+		else {
+			var containerPasAdmin = document.getElementById("containerPasAdmin");
+			containerPasAdmin.style.display = 'block';
+
+			buttonBuzz.onclick = () => {
+				buttonBuzz.setAttribute('disabled', '');
+				let msg = {
+					type: 'buzz',
+					idRoom: idRoom,
+					playerId: playerId
+				}
+				ws.send(JSON.stringify(msg));
+			}
+		}
+	});
 </script>
 
 </html>
