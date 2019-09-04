@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta http-equiv="X-UA-Compatible" content="ie=edge">
+	<title>Buzz</title>
+	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+		integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+</head>
+
+<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
+	integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
+	crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"
+	integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
+	crossorigin="anonymous"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
+	integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
+	crossorigin="anonymous"></script>
+
+<body>
+	<div style="margin-left: 20px">
+		<div id="controlPanelAdmin" style="display: none">
+
+			<button id="buttonStart">Start</button>
+			<button id="buttonReset">Reset</button>
+			<label>Temps: </label><input type="text">
+			<br>
+			<label>Temps restant: </label><input id="tempsInput" value="10">
+			<br><br>
+			<table style="border: 1px solid black; width: 300px">
+				<tbody id="playersTable">
+
+				</tbody>
+			</table>
+		</div>
+	</div>
+</body>
+
+<script>
+	var ws = new WebSocket("ws://127.0.0.1:5000");
+	var idRoom = sessionStorage.getItem('idRoom');
+	var playerId = sessionStorage.getItem('playerId');
+
+	var interval = undefined;
+
+	var tempsInput = document.getElementById('tempsInput');
+
+	ws.onmessage = (raw) => {
+		let data = JSON.parse(raw.data);
+		console.log(data.type);
+		switch (data.type) {
+			case 'start':
+				tempsInput.value = data.temps;
+				interval = setInterval(() => {
+					if (tempsInput.value > 0)
+						tempsInput.value--;
+					else
+						clearInterval(interval);
+				}, 1000);
+				break;
+			case 'stop':
+				tempsInput.value = data.temps;
+				clearInterval(interval);
+				break;
+		}
+	}
+
+	let admin = true;
+	if (admin) {
+
+		var start = false;
+
+		var controlPanelAdmin = document.getElementById("controlPanelAdmin");
+		controlPanelAdmin.style.display = 'block';
+		var buttonStart = document.getElementById('buttonStart');
+		var buttonReset = document.getElementById('buttonReset');
+
+		buttonStart.onclick = () => {
+			start = !start;
+			if (start)
+				buttonStart.textContent = 'Pause';
+			else
+				buttonStart.textContent = "Start";
+
+			if (start) {
+				let msg = {
+					type: 'start',
+					idRoom: idRoom,
+					playerId: playerId,
+					temps: tempsInput.value
+				}
+				ws.send(JSON.stringify(msg));
+			}
+			else {
+				let msg = {
+					type: 'stop',
+					idRoom: idRoom,
+					playerId: playerId,
+				}
+				ws.send(JSON.stringify(msg));
+			}
+		}
+
+		/*ws.onmessage = (raw) => {
+			let data = JSON.parse(raw.data);
+			console.log(data.type);
+			switch (data.type) {
+				case 'getPlayersAll':
+					let players = data.players;
+					updatePlayers(players);
+					break;
+			}
+		}*/
+
+		function updatePlayers(players) {
+			let table = document.getElementById("playersTable");
+			table.innerHTML = '';
+			for (let playerId in players) {
+				let player = players[playerId];
+				if (player.role == 'player') {
+					table.innerHTML += '<tr> <td style="border: 1px solid black"> ' + player.pseudo + '</td><td>info</td></tr>';
+				}
+			}
+		}
+
+		//debug
+		/*setInterval(() => {
+			let msg = {
+				type: 'getPlayersAll',
+				idRoom: idRoom,
+				playerId: playerId
+			}
+			ws.send(JSON.stringify(msg));
+		}, 2000);*/
+	}
+</script>
+
+</html>

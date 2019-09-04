@@ -1,0 +1,27 @@
+{
+  "name": "buzz",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "test": "node app.js",
+    "start": "nodemon app.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MaximePain/buzz.git"
+  },
+  "author": "MaximePain",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/MaximePain/buzz/issues"
+  },
+  "homepage": "https://github.com/MaximePain/buzz#readme",
+  "dependencies": {
+    "ejs": "^2.7.1",
+    "express": "^4.17.1",
+    "http": "0.0.0",
+    "nodemon": "^1.19.2",
+    "ws": "^7.1.2"
+  }
+}
