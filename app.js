@@ -25,7 +25,6 @@ app.get('/:idRoom', (req, res) => {
 });
 
 app.post('/app', (req,res)=>{
-	//console.log(req.body);
 	let admin = isAdmin(req.body.idRoom, req.body.playerId);
 	res.render('buzz.ejs', {admin: admin});
 });
@@ -113,7 +112,6 @@ wss.on("connection", function conncetion(ws) {
 							salle[idRoom].interval = setInterval((param) => {
 								if (param.temps > 0) {
 									param.temps--;
-									console.log(param.temps);
 								}
 								else {
 									param.etat = 'stop';
@@ -183,7 +181,6 @@ wss.on("connection", function conncetion(ws) {
 					score /= 1000;
 					
 					salle[idRoom].players[playerId].score = score;
-					console.log("buzz");
 					msg = {
 						type: 'buzz'
 					}
@@ -252,18 +249,6 @@ function isAdmin(idRoom, playerId) {
 	return ( playerId == servId ||  salle[idRoom].players[playerId].role == 'admin');
 }
 
-function broadcastRoom(idRoom, msg) {
-	/*for (let id in salle[idRoom].players) {
-		//console.log(salle[idRoom].players[id].ws.send == undefined);
-		salle[idRoom].players[id].ws.send("test");
-	}*/
-
-	wsL.forEach(ws => {
-		console.log(ws.readyState = WebSocket.OPEN);
-		if (ws.readyState === WebSocket.OPEN && ws.idRoom == idRoom)
-			ws.send(JSON.stringify(msg));
-	});
-}
 
 function generateId() {
 	return Math.floor(Math.random() * 1000000);
