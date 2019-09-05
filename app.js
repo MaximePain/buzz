@@ -100,6 +100,21 @@ wss.on("connection", function conncetion(ws) {
 					ws.send(JSON.stringify(msg));
 				}
 				break;
+			case 'sendPlayersAll':
+				idRoom = data.idRoom;
+				playerId = data.playerId;
+				if (salle[idRoom] != undefined && isAdmin(idRoom, playerId)) {
+					msg = {
+						type: 'getPlayersAll',
+						players: salle[idRoom].players
+					}
+					wss.clients.forEach(function each(client) {
+						if (client.readyState === WebSocket.OPEN && client.idRoom == ws.idRoom) {
+							client.send(JSON.stringify(msg));
+						}
+					});
+				}
+				break;
 			case 'start':
 				idRoom = data.idRoom;
 				playerId = data.playerId;
@@ -218,9 +233,20 @@ function createPlayer(idRoom, pseudo, role) {
 	salle[idRoom].players[id] = {
 		pseudo: pseudo,
 		role: role,
-		score: -1
+		score: -1,
+		point: 0
 	}
 	return id;
+}
+
+function addPlayerPoint(idRoom, playerId, point)
+{
+	salle[idRoom].players[playerId].point += point;
+}
+
+function setPlayerPoint(idRoom, playerId, point)
+{
+	salle[idRoom].players[playerId].point = point;
 }
 
 function resetPlayersScore(idRoom) {
@@ -229,6 +255,7 @@ function resetPlayersScore(idRoom) {
 		let player = players[id];
 		player.score = -1;
 		player.time = Date.now();
+		player.point = 0;
 	}
 }
 

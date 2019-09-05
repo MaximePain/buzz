@@ -29,7 +29,7 @@
 			<br>
 			<label>Temps restant: </label><input id="tempsInput" value="10">
 			<br><br>
-			<table style="border: 1px solid black; width: 300px">
+			<table style="border: 1px solid black; width: 200px">
 				<tbody id="playersTable">
 
 				</tbody>
@@ -100,7 +100,7 @@
 			}
 		}
 
-		ws.onopen = ()=>{
+		ws.onopen = () => {
 			let msg = {
 				type: "joined",
 				idRoom: idRoom,
@@ -167,10 +167,12 @@
 					let player = players[playerId];
 					if (player.role == 'player') {
 						let score = player.score;
-						if (score != -1)
-							table.innerHTML += '<tr> <td style="border: 1px solid black"> ' + player.pseudo + '</td><td>' + player.score + '</td></tr>';
+						if (score != -1) {
+							table.innerHTML += '<tr> <td class="text-center" style="border: 1px solid black"> ' + player.pseudo + '</td ><td class="text-center" style="border: 1px solid black">' + player.score + '</td><td class="text-center" style="border: 1px solid black">' + player.point + '</td><td class="text-center" style="border: 1px solid black"><button type="button">+</button><button type="button">-</button></td></tr>';
+						}
 					}
 				}
+				sortTable("playersTable");
 			}
 
 			//debug
@@ -197,6 +199,33 @@
 				ws.send(JSON.stringify(msg));
 			}
 		}
+
+
+		function sortTable(id) {
+			let table, rows, switching, i, x, y, shouldSwitch;
+			table = document.getElementById(id);
+			switching = true;
+			while (switching) {
+				switching = false;
+				rows = table.rows;
+				for (i = 0; i < (rows.length - 1); i++) {
+					shouldSwitch = false;
+					x = rows[i].getElementsByTagName("TD")[1];
+					y = rows[i + 1].getElementsByTagName("TD")[1];
+					if (x != undefined && y != undefined)
+						if (Number(x.innerHTML) > Number(y.innerHTML)) {
+							shouldSwitch = true;
+							break;
+						}
+				}
+				if (shouldSwitch) {
+					rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+					switching = true;
+				}
+			}
+		}
+
+
 	});
 </script>
 
