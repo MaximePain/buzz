@@ -66,6 +66,7 @@
 				case 'start':
 					buttonBuzz.removeAttribute('disabled');
 					tempsInput.value = data.temps;
+					clearInterval(interval);
 					interval = setInterval(() => {
 						if (tempsInput.value > 0)
 							tempsInput.value--;
@@ -97,6 +98,15 @@
 						break;
 				}
 			}
+		}
+
+		ws.onopen = ()=>{
+			let msg = {
+				type: "joined",
+				idRoom: idRoom,
+				playerId: playerId
+			}
+			ws.send(JSON.stringify(msg));
 		}
 
 		if (admin) {
